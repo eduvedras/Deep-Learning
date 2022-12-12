@@ -68,6 +68,11 @@ class FeedforwardNetwork(nn.Module):
         """
         super().__init__()
         # Implement me!
+        self.fc1 = nn.Linear(n_features,hidden_size)
+        #self.fc3 = nn.Linear(hidden_size,hidden_size) this is for 2 hidden layers
+        self.active = nn.ReLU()
+        self.fc2 = nn.Linear(hidden_size,n_classes)
+        self.dropout = nn.Dropout(dropout)
 
     def forward(self, x, **kwargs):
         """
@@ -77,8 +82,14 @@ class FeedforwardNetwork(nn.Module):
         the output logits from x. This will include using various hidden
         layers, pointwise nonlinear functions, and dropout.
         """
-        raise NotImplementedError
+        out = self.fc1(x)
+        out = self.active(out)
+        #out = self.fc3(out) -> 2 hidden layers
+        #out = self.active(out) -> 2 hidden layers
+        out = self.fc2(out)
 
+        return out
+        
 
 def train_batch(X, y, model, optimizer, criterion, **kwargs):
     """
@@ -149,7 +160,7 @@ def main():
                         help="Size of training batch.")
     parser.add_argument('-learning_rate', type=float, default=0.01)
     parser.add_argument('-l2_decay', type=float, default=0)
-    parser.add_argument('-hidden_sizes', type=int, default=100)
+    parser.add_argument('-hidden_size', type=int, default=100)
     parser.add_argument('-layers', type=int, default=1)
     parser.add_argument('-dropout', type=float, default=0.3)
     parser.add_argument('-activation',
