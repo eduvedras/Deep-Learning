@@ -99,7 +99,6 @@ class MLP(object):
         # no need to save the values of hidden nodes, whereas this is required
         # at training time.
         rand = np.random.randint(len(X))
-        #self.h0 = X[self.rand]
         h0 = X[rand]
 
         z1 = self.W1.dot(h0) + self.b1
@@ -123,7 +122,7 @@ class MLP(object):
         return n_correct / n_possible
 
     def train_epoch(self, X, y, learning_rate=0.001):
-        #self.predict(X)
+        #Forward propagation
         rand = np.random.randint(len(X))
         h0 = X[rand]
 
@@ -134,17 +133,17 @@ class MLP(object):
         h2 = z2
         # Gradient of hidden layer below before activation.
         grad_z2 = h2 - y[rand]   # Grad of loss wrt z3.
-        print(grad_z2)
+        #print(grad_z2)
 
         # Gradient of hidden parameters.
         grad_W2 = grad_z2[:, None].dot(h1[:, None].T)
         grad_b2 = grad_z2
-        print(grad_W2)
-        print(grad_b2)
+        #print(grad_W2)
+        #print(grad_b2)
 
         # Gradient of hidden layer below.
         grad_h1 = self.W2.T.dot(grad_z2)
-        print(grad_h1)
+        #print(grad_h1)
         
         # Gradient of hidden layer below before activation.
         h1_aux = h1
@@ -156,19 +155,8 @@ class MLP(object):
         grad_z1 = grad_z1 * grad_h1
         
         
-        
-        '''grad_z1 = []
-        i=0
-        print(len(self.h1))
-        while i < len(self.h1):
-            if self.h1[i] >=0:
-                grad_z1.append(grad_h1[i] * 1)
-            else:
-                grad_z1.append(0)
-            i = i + 1'''
-        
             
-        print(grad_z1)
+        #print(grad_z1)
 
         # Gradient of hidden parameters.
         grad_W1 = grad_z1[:, None].dot(h0[:, None].T)

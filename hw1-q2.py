@@ -67,12 +67,27 @@ class FeedforwardNetwork(nn.Module):
         includes modules for several activation functions and dropout as well.
         """
         super().__init__()
-        # Implement me!
-        self.fc1 = nn.Linear(n_features,hidden_size)
-        #self.fc3 = nn.Linear(hidden_size,hidden_size) this is for 2 hidden layers
-        self.active = nn.ReLU()
-        self.fc2 = nn.Linear(hidden_size,n_classes)
+        
+        if(activation_type == 'relu'):
+            self.active = nn.ReLU()
+        elif(activation_type == 'tanh'):
+            self.active = nn.Tanh()
+        
         self.dropout = nn.Dropout(dropout)
+        self.layers = layers
+        
+        if(layers == 1):
+            self.fc1 = nn.Linear(n_features,hidden_size)
+            self.fc2 = nn.Linear(hidden_size,n_classes)
+        if(layers == 2):
+            self.fc1 = nn.Linear(n_features,hidden_size)
+            self.fc2 = nn.Linear(hidden_size,hidden_size)
+            self.fc3 = nn.Linear(hidden_size,n_classes)
+        if(layers == 3):
+            self.fc1 = nn.Linear(n_features,hidden_size)
+            self.fc2 = nn.Linear(hidden_size,hidden_size)
+            self.fc3 = nn.Linear(hidden_size,hidden_size)
+            self.fc4 = nn.Linear(hidden_size,n_classes)
 
     def forward(self, x, **kwargs):
         """
@@ -82,11 +97,29 @@ class FeedforwardNetwork(nn.Module):
         the output logits from x. This will include using various hidden
         layers, pointwise nonlinear functions, and dropout.
         """
-        out = self.fc1(x)
-        out = self.active(out)
-        #out = self.fc3(out) -> 2 hidden layers
-        #out = self.active(out) -> 2 hidden layers
-        out = self.fc2(out)
+        
+        if(self.layers == 1):
+            out = self.fc1(x)
+            out = self.active(out)
+            out = self.fc2(out)
+        
+        if(self.layers == 2):
+            out = self.fc1(x)
+            out = self.active(out)
+            out = self.fc2(out)
+            out = self.active(out)
+            out = self.fc3(out)
+            
+        if(self.layers == 3):
+            out = self.fc1(x)
+            out = self.active(out)
+            out = self.fc2(out)
+            out = self.active(out)
+            out = self.fc3(out)
+            out = self.active(out)
+            out = self.fc4(out)
+        
+        out = self.dropout(out)
 
         return out
         
@@ -156,7 +189,7 @@ def main():
     parser.add_argument('-epochs', default=20, type=int,
                         help="""Number of epochs to train for. You should not
                         need to change this value for your plots.""")
-    parser.add_argument('-batch_size', default=1, type=int,
+    parser.add_argument('-batch_size', default=16, type=int,
                         help="Size of training batch.")
     parser.add_argument('-learning_rate', type=float, default=0.01)
     parser.add_argument('-l2_decay', type=float, default=0)
