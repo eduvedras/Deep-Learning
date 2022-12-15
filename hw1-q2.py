@@ -145,6 +145,7 @@ def train_batch(X, y, model, optimizer, criterion, **kwargs):
     inputs = X
     targets = y
 
+    optimizer.zero_grad()
     outputs = model(inputs)
     loss = criterion(outputs,targets)
     loss.backward()

@@ -60,6 +60,8 @@ class Perceptron(LinearModel):
         y_hat = (self.W.dot(x_i)).argmax(axis=0)
         if y_hat != y_i:
             self.W += kwargs['learning_rate'] * y_i * x_i
+            self.W[y_i, :] += kwargs['learning_rate'] * x_i
+            self.W[y_hat, :] -= kwargs['learning_rate'] * x_i
             #print(y_i*x_i)
 
 
@@ -71,11 +73,22 @@ class LogisticRegression(LinearModel):
         learning_rate (float): keep it at the default value for your plots
         """
         # Q1.1b
-        
+        '''
         y_hat = 1 / (1 + np.exp(-self.W.dot(x_i)))
         x = np.matrix(x_i)
         y_hat = np.matrix(y_hat)
-        self.W += learning_rate * (y_i - y_hat.T) * x
+        self.W += learning_rate * (y_i - y_hat.T) * x'''
+        
+        # Label scores according to the model (num_labels x 1).
+        label_scores = self.W.dot(x_i)[:, None]
+        # One-hot vector with the true label (num_labels x 1).
+        y_one_hot = np.zeros((np.size(self.W, 0), 1))
+        y_one_hot[y_i] = 1
+        # Softmax function.
+        # This gives the label probabilities according to the model (num_labels x 1).
+        label_probabilities = np.exp(label_scores) / np.sum(np.exp(label_scores))
+        # SGD update. W is num_labels x num_features.
+        self.W += learning_rate * (y_one_hot - label_probabilities) * x_i[None, :]
 
 
 class MLP(object):
@@ -125,57 +138,94 @@ class MLP(object):
         n_correct = (y == y_hat).sum()
         n_possible = y.shape[0]
         return n_correct / n_possible
+    
+    def forward(self,x, weights, biases):
+        #z2 -= np.max(z2)
+        num_layers = len(weights)
+        #g = np.tanh
+        hiddens = []
+        for i in range(num_layers):
+            h = x if i == 0 else hiddens[i-1]
+            z = weights[i].dot(h) + biases[i]
+            if i < num_layers-1:  # Assume the output layer has no activation.
+                hiddens.append(np.maximum(0,z))
+        z -= np.max(z)
+        output = z
+        # For classification this is a vector of logits (label scores).
+        # For regression this is a vector of predictions.
+        return output, hiddens
+    
+    def compute_label_probabilities(self,output):
+        # softmax transformation.
+        probs = np.exp(output) / np.sum(np.exp(output))
+        return probs
+    
+    def compute_loss(self, output, y):
+        # softmax transformation.
+        probs = self.compute_label_probabilities(output)
+        loss = -y.dot(np.log(probs))
+        return loss
+    
+    def backward(self, x, y, output, hiddens, weights):
+        num_layers = len(weights)
+        #g = np.tanh
+        z = output
+        # softmax transformation.
+        probs = self.compute_label_probabilities(output)
+        grad_z = probs - y  # Grad of loss wrt last z.
+        grad_weights = []
+        grad_biases = []
+        for i in range(num_layers-1, -1, -1):
+            # Gradient of hidden parameters.
+            h = x if i == 0 else hiddens[i-1]
+            grad_weights.append(grad_z[:, None].dot(h[:, None].T))
+            grad_biases.append(grad_z)
+
+            # Gradient of hidden layer below.
+            grad_h = weights[i].T.dot(grad_z)
+
+            # Gradient of hidden layer below before activation.
+            #assert(g == np.tanh)
+            #grad_z = grad_h * (1-h**2)   # Grad of loss wrt z3.
+            #grad_z = grad_h       -----------------> here
+
+        grad_weights.reverse()
+        grad_biases.reverse()
+        return grad_weights, grad_biases
+    
+    def update_parameters(self,weights, biases, grad_weights, grad_biases, eta):
+        num_layers = len(weights)
+        for i in range(num_layers):
+            weights[i] -= eta*grad_weights[i]
+            biases[i] -= eta*grad_biases[i]
+    
+    def predict_label(self,output):
+        # The most probable label is also the label with the largest logit.
+        y_hat = np.zeros_like(output)
+        y_hat[np.argmax(output)] = 1
+        return y_hat
 
     def train_epoch(self, X, y, learning_rate=0.001):
-        #Forward propagation
-        rand = np.random.randint(len(X))
-        h0 = X[0]
+        output, hiddens = self.forward(X[0], [self.W1, self.W2], [self.b1, self.b2])
 
-        z1 = self.W1.dot(h0) + self.b1
-        h1 = np.maximum(0,z1)
+        y_hat = self.predict_label(output)
 
-        z2 = self.W2.dot(h1) + self.b2
-        z2 -= np.max(z2)
-        h2 = np.exp(z2) / np.sum(np.exp(z2))
-        # Gradient of hidden layer below before activation.
-        grad_z2 = h2 - y[0]   # Grad of loss wrt z3.
-        #print(grad_z2)
+        #loss = self.compute_loss(output, y)
 
-        # Gradient of hidden parameters.
-        grad_W2 = grad_z2[:, None].dot(h1[:, None].T)
-        grad_b2 = grad_z2
-        #print(grad_W2)
-        #print(grad_b2)
+        print(output)
+        print(y_hat)
+        #print(loss)
 
-        # Gradient of hidden layer below.
-        grad_h1 = self.W2.T.dot(grad_z2)
-        #print(grad_h1)
-        
-        # Gradient of hidden layer below before activation.
-        h1_aux = h1
-        h1_aux[h1_aux<=0] = 0
-        h1_aux[h1_aux>0] = 1
-        
-        grad_z1 = h1_aux
-        
-        grad_z1 = grad_z1 * grad_h1
-        
-        
-            
-        #print(grad_z1)
+        grad_weights, grad_biases = self.backward(X[0], y[0], output, hiddens, [self.W1, self.W2])
 
-        # Gradient of hidden parameters.
-        grad_W1 = grad_z1[:, None].dot(h0[:, None].T)
-        grad_b1 = grad_z1
-        np.set_printoptions(threshold=1000000000)
-        print(grad_W1)
-        #print(grad_b1)
-        
-        self.W1 -= learning_rate*grad_W1
-        self.b1 -= learning_rate*grad_b1
-        self.W2 -= learning_rate*grad_W2
-        self.b2 -= learning_rate*grad_b2
-        #print(self.W1)
+        self.update_parameters([self.W1, self.W2], [self.b1, self.b2], grad_weights, grad_biases, eta=0.1)
+
+        print(self.W1)
+        print(self.W2)
+        print(self.b1)
+        print(self.b2)
+
+        print(grad_weights, grad_biases)
 
 
 def plot(epochs, valid_accs, test_accs):
