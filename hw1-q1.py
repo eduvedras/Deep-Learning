@@ -60,6 +60,7 @@ class Perceptron(LinearModel):
         y_hat = (self.W.dot(x_i)).argmax(axis=0)
         if y_hat != y_i:
             self.W += kwargs['learning_rate'] * y_i * x_i
+            #print(y_i*x_i)
 
 
 class LogisticRegression(LinearModel):
@@ -70,8 +71,11 @@ class LogisticRegression(LinearModel):
         learning_rate (float): keep it at the default value for your plots
         """
         # Q1.1b
-        y_hat = (self.W.dot(x_i)).argmax(axis=0)
-        self.W += learning_rate * (y_i - y_hat) * x_i
+        
+        y_hat = 1 / (1 + np.exp(-self.W.dot(x_i)))
+        x = np.matrix(x_i)
+        y_hat = np.matrix(y_hat)
+        self.W += learning_rate * (y_i - y_hat.T) * x
 
 
 class MLP(object):
@@ -99,13 +103,14 @@ class MLP(object):
         # no need to save the values of hidden nodes, whereas this is required
         # at training time.
         rand = np.random.randint(len(X))
-        h0 = X[rand]
+        h0 = X[0]
 
         z1 = self.W1.dot(h0) + self.b1
         h1 = np.maximum(0,z1)
 
         z2 = self.W2.dot(h1) + self.b2
-        h2 = z2
+        #h2 = z2
+        h2 = np.exp(z2) / np.sum(np.exp(z2))
         
         return h2.argmax(axis=0)
 
@@ -124,15 +129,16 @@ class MLP(object):
     def train_epoch(self, X, y, learning_rate=0.001):
         #Forward propagation
         rand = np.random.randint(len(X))
-        h0 = X[rand]
+        h0 = X[0]
 
         z1 = self.W1.dot(h0) + self.b1
         h1 = np.maximum(0,z1)
 
         z2 = self.W2.dot(h1) + self.b2
-        h2 = z2
+        z2 -= np.max(z2)
+        h2 = np.exp(z2) / np.sum(np.exp(z2))
         # Gradient of hidden layer below before activation.
-        grad_z2 = h2 - y[rand]   # Grad of loss wrt z3.
+        grad_z2 = h2 - y[0]   # Grad of loss wrt z3.
         #print(grad_z2)
 
         # Gradient of hidden parameters.
@@ -161,13 +167,15 @@ class MLP(object):
         # Gradient of hidden parameters.
         grad_W1 = grad_z1[:, None].dot(h0[:, None].T)
         grad_b1 = grad_z1
+        np.set_printoptions(threshold=1000000000)
         print(grad_W1)
-        print(grad_b1)
+        #print(grad_b1)
         
         self.W1 -= learning_rate*grad_W1
         self.b1 -= learning_rate*grad_b1
         self.W2 -= learning_rate*grad_W2
         self.b2 -= learning_rate*grad_b2
+        #print(self.W1)
 
 
 def plot(epochs, valid_accs, test_accs):
