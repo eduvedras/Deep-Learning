@@ -73,11 +73,6 @@ class LogisticRegression(LinearModel):
         learning_rate (float): keep it at the default value for your plots
         """
         # Q1.1b
-        '''
-        y_hat = 1 / (1 + np.exp(-self.W.dot(x_i)))
-        x = np.matrix(x_i)
-        y_hat = np.matrix(y_hat)
-        self.W += learning_rate * (y_i - y_hat.T) * x'''
         
         # Label scores according to the model (num_labels x 1).
         label_scores = self.W.dot(x_i)[:, None]
@@ -102,14 +97,6 @@ class MLP(object):
         self.W2 = np.random.normal(0.1, 0.1**2, size=(units[2],units[1]))
         self.b1 = np.zeros(units[1])
         self.b2 = np.zeros(units[2])
-        '''self.h0 = []
-        self.rand = -1
-
-        self.z1 = []
-        self.h1 = []
-
-        self.z2 = []
-        self.h2 = []'''
 
     def predict(self, X):
         # Compute the forward pass of the network. At prediction time, there is
@@ -187,7 +174,13 @@ class MLP(object):
             # Gradient of hidden layer below before activation.
             #assert(g == np.tanh)
             #grad_z = grad_h * (1-h**2)   # Grad of loss wrt z3.
-            #grad_z = grad_h       -----------------> here
+            #print(h)
+            h = np.where(h >= 0, 1, h)
+            h = np.where(h < 0, 0, h)
+            #print(h)
+            
+            grad_z = np.multiply(grad_h,h)
+            
 
         grad_weights.reverse()
         grad_biases.reverse()
@@ -198,6 +191,20 @@ class MLP(object):
         for i in range(num_layers):
             weights[i] -= eta*grad_weights[i]
             biases[i] -= eta*grad_biases[i]
+            
+            self.W += kwargs['learning_rate'] * y_i * x_i
+            self.W[y_i, :] += kwargs['learning_rate'] * x_i
+            self.W[y_hat, :] -= kwargs['learning_rate'] * x_i
+            
+            '''label_scores = self.W.dot(x_i)[:, None]
+            # One-hot vector with the true label (num_labels x 1).
+            y_one_hot = np.zeros((np.size(weights[i], 0), 1))
+            y_one_hot[y_i] = 1
+            # Softmax function.
+            # This gives the label probabilities according to the model (num_labels x 1).
+            label_probabilities = np.exp(label_scores) / np.sum(np.exp(label_scores))
+            # SGD update. W is num_labels x num_features.
+            self.W += learning_rate * (y_one_hot - label_probabilities) * x_i[None, :]'''
     
     def predict_label(self,output):
         # The most probable label is also the label with the largest logit.
