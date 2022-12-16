@@ -95,7 +95,6 @@ class MLP(object):
         # Initialize an MLP with a single hidden layer.
         self.W1 = np.random.normal(0.1, 0.1**2, size=(units[1],units[0]))
         self.W2 = np.random.normal(0.1, 0.1**2, size=(units[2],units[1]))
-        self.aux = self.W1
         self.b1 = np.zeros(units[1])
         self.b2 = np.zeros(units[2])
 
@@ -106,7 +105,7 @@ class MLP(object):
         
         predicted_labels = []
         for x in X:
-            output, _ = self.forward(x, [self.W1,self.W2], [self.b1,self.b2])
+            output, _, _ = self.forward(x, [self.W1,self.W2], [self.b1,self.b2])
             y_hat = self.predict_label(output)
             predicted_labels.append(y_hat)
         predicted_labels = np.array(predicted_labels)
@@ -129,16 +128,18 @@ class MLP(object):
         num_layers = len(weights)
         #g = np.tanh
         hiddens = []
+        hiddensReLU = []
         for i in range(num_layers):
             h = x if i == 0 else hiddens[i-1]
             z = weights[i].dot(h) + biases[i]
             if i < num_layers-1:  # Assume the output layer has no activation.
                 hiddens.append(np.maximum(0,z))
+                hiddensReLU.append(z)
         z -= np.max(z)
         output = z
         # For classification this is a vector of logits (label scores).
         # For regression this is a vector of predictions.
-        return output, hiddens
+        return output, hiddens, hiddensReLU
     
     def compute_label_probabilities(self,output):
         # softmax transformation.
@@ -151,7 +152,7 @@ class MLP(object):
         loss = -y.dot(np.log(probs))
         return loss
     
-    def backward(self, x, y, output, hiddens, weights):
+    def backward(self, x, y, output, hiddens, hiddensReLU, weights):
         num_layers = len(weights)
         #g = np.tanh
         z = output
@@ -163,6 +164,8 @@ class MLP(object):
         for i in range(num_layers-1, -1, -1):
             # Gradient of hidden parameters.
             h = x if i == 0 else hiddens[i-1]
+            #print(grad_z.shape)
+            #print(h.shape)
             grad_weights.append(grad_z[:, None].dot(h[:, None].T))
             grad_biases.append(grad_z)
 
@@ -172,12 +175,13 @@ class MLP(object):
             # Gradient of hidden layer below before activation.
             #assert(g == np.tanh)
             #grad_z = grad_h * (1-h**2)   # Grad of loss wrt z3.
-            #print(h)
-            h = np.where(h >= 0, 1, h)
-            h = np.where(h < 0, 0, h)
-            #print(h)
-            
-            grad_z = np.multiply(grad_h,h)
+            #print("111")
+            if(i == 1):
+                z1 = np.where(hiddensReLU[0] >= 0, 1, 0)
+                #hiddensReLU[0] = np.where(hiddensReLU[0] < 0, 0, hiddensReLU[0])
+                #print(h)
+                
+                grad_z = np.multiply(grad_h,z1)
             
 
         grad_weights.reverse()
@@ -200,7 +204,7 @@ class MLP(object):
         return y_hat
 
     def train_epoch(self, X, y, learning_rate=0.001):
-        output, hiddens = self.forward(X[0], [self.W1, self.W2], [self.b1, self.b2])
+        output, hiddens, hiddensReLU = self.forward(X[0], [self.W1, self.W2], [self.b1, self.b2])
 
         y_hat = self.predict_label(output)
 
@@ -210,10 +214,10 @@ class MLP(object):
         #print(y_hat)
         #print(loss)
 
-        grad_weights, grad_biases = self.backward(X[0], y[0], output, hiddens, [self.W1, self.W2])
+        grad_weights, grad_biases = self.backward(X[0], y[0], output, hiddens, hiddensReLU, [self.W1, self.W2])
         
-        np.set_printoptions(threshold=np.inf)
-        print(grad_weights)
+        #np.set_printoptions(threshold=np.inf)
+        #print(grad_weights)
 
         self.update_parameters(grad_weights, grad_biases, learning_rate)
         
@@ -221,7 +225,7 @@ class MLP(object):
         #print(len(weights))
 
         #np.set_printoptions(threshold=np.inf)
-        #print(self.W1 == self.aux)
+        #print(self.W1 == test)
         #print(self.W2)
         #print(self.b1)
         #print(self.b2)
