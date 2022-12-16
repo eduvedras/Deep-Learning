@@ -102,17 +102,14 @@ class MLP(object):
         # Compute the forward pass of the network. At prediction time, there is
         # no need to save the values of hidden nodes, whereas this is required
         # at training time.
-        rand = np.random.randint(len(X))
-        h0 = X[0]
-
-        z1 = self.W1.dot(h0) + self.b1
-        h1 = np.maximum(0,z1)
-
-        z2 = self.W2.dot(h1) + self.b2
-        #h2 = z2
-        h2 = np.exp(z2) / np.sum(np.exp(z2))
         
-        return h2.argmax(axis=0)
+        predicted_labels = []
+        for x in X:
+            output, _ = self.forward(x, [self.W1,self.W2], [self.b1,self.b2])
+            y_hat = self.predict_label(output)
+            predicted_labels.append(y_hat)
+        predicted_labels = np.array(predicted_labels)
+        return predicted_labels.argmax(axis=1)
 
 
     def evaluate(self, X, y):
