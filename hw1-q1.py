@@ -59,7 +59,7 @@ class Perceptron(LinearModel):
         #print(self.W.shape)
         y_hat = (self.W.dot(x_i)).argmax(axis=0)
         if y_hat != y_i:
-            self.W += kwargs['learning_rate'] * y_i * x_i
+            #self.W += kwargs['learning_rate'] * y_i * x_i
             self.W[y_i, :] += kwargs['learning_rate'] * x_i
             self.W[y_hat, :] -= kwargs['learning_rate'] * x_i
             #print(y_i*x_i)
@@ -95,6 +95,7 @@ class MLP(object):
         # Initialize an MLP with a single hidden layer.
         self.W1 = np.random.normal(0.1, 0.1**2, size=(units[1],units[0]))
         self.W2 = np.random.normal(0.1, 0.1**2, size=(units[2],units[1]))
+        self.aux = self.W1
         self.b1 = np.zeros(units[1])
         self.b2 = np.zeros(units[2])
 
@@ -183,11 +184,14 @@ class MLP(object):
         grad_biases.reverse()
         return grad_weights, grad_biases
     
-    def update_parameters(self,weights, biases, grad_weights, grad_biases, eta):
-        num_layers = len(weights)
-        for i in range(num_layers):
-            weights[i] -= eta*grad_weights[i]
-            biases[i] -= eta*grad_biases[i]
+    def update_parameters(self, grad_weights, grad_biases, eta):
+        #aux = self.W1
+        self.W1 = self.W1 - eta*grad_weights[0]
+        self.W2 = self.W2 - eta*grad_weights[1]
+        self.b1 = self.b1 - eta*grad_biases[0]
+        self.b2 = self.b2 - eta*grad_biases[1]
+        #np.set_printoptions(threshold=np.inf)
+        #print(self.W1 == aux)
     
     def predict_label(self,output):
         # The most probable label is also the label with the largest logit.
@@ -202,20 +206,27 @@ class MLP(object):
 
         #loss = self.compute_loss(output, y)
 
-        print(output)
-        print(y_hat)
+        #print(output)
+        #print(y_hat)
         #print(loss)
 
         grad_weights, grad_biases = self.backward(X[0], y[0], output, hiddens, [self.W1, self.W2])
+        
+        np.set_printoptions(threshold=np.inf)
+        print(grad_weights)
 
-        self.update_parameters([self.W1, self.W2], [self.b1, self.b2], grad_weights, grad_biases, eta=0.1)
+        self.update_parameters(grad_weights, grad_biases, learning_rate)
+        
+        #print(self.W1)
+        #print(len(weights))
 
-        print(self.W1)
-        print(self.W2)
-        print(self.b1)
-        print(self.b2)
+        #np.set_printoptions(threshold=np.inf)
+        #print(self.W1 == self.aux)
+        #print(self.W2)
+        #print(self.b1)
+        #print(self.b2)
 
-        print(grad_weights, grad_biases)
+        #print(grad_weights, grad_biases)
 
 
 def plot(epochs, valid_accs, test_accs):
