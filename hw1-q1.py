@@ -109,7 +109,7 @@ class MLP(object):
             y_hat = self.predict_label(output)
             predicted_labels.append(y_hat)
         predicted_labels = np.array(predicted_labels)
-        return predicted_labels.argmax(axis=1)
+        return predicted_labels
 
 
     def evaluate(self, X, y):
@@ -158,7 +158,9 @@ class MLP(object):
         z = output
         # softmax transformation.
         probs = self.compute_label_probabilities(output)
-        grad_z = probs - y  # Grad of loss wrt last z.
+        y_onehot = np.zeros_like(output)
+        y_onehot[y] = 1
+        grad_z = probs - y_onehot  # Grad of loss wrt last z.
         grad_weights = []
         grad_biases = []
         for i in range(num_layers-1, -1, -1):
@@ -177,11 +179,11 @@ class MLP(object):
             #grad_z = grad_h * (1-h**2)   # Grad of loss wrt z3.
             #print("111")
             if(i == 1):
-                z1 = np.where(hiddensReLU[0] >= 0, 1, 0)
+                z1 = np.where(hiddensReLU[0] > 0, 1, 0)
                 #hiddensReLU[0] = np.where(hiddensReLU[0] < 0, 0, hiddensReLU[0])
                 #print(h)
                 
-                grad_z = np.multiply(grad_h,z1)
+                grad_z = grad_h*z1
             
 
         grad_weights.reverse()
@@ -201,12 +203,12 @@ class MLP(object):
         # The most probable label is also the label with the largest logit.
         y_hat = np.zeros_like(output)
         y_hat[np.argmax(output)] = 1
-        return y_hat
+        return np.argmax(output)
 
     def train_epoch(self, X, y, learning_rate=0.001):
-        output, hiddens, hiddensReLU = self.forward(X[0], [self.W1, self.W2], [self.b1, self.b2])
+        for x, y1 in zip(X, y):
+            output, hiddens, hiddensReLU = self.forward(x, [self.W1, self.W2], [self.b1, self.b2])
 
-        y_hat = self.predict_label(output)
 
         #loss = self.compute_loss(output, y)
 
@@ -214,12 +216,12 @@ class MLP(object):
         #print(y_hat)
         #print(loss)
 
-        grad_weights, grad_biases = self.backward(X[0], y[0], output, hiddens, hiddensReLU, [self.W1, self.W2])
+            grad_weights, grad_biases = self.backward(x, y1, output, hiddens, hiddensReLU, [self.W1, self.W2])
         
         #np.set_printoptions(threshold=np.inf)
         #print(grad_weights)
 
-        self.update_parameters(grad_weights, grad_biases, learning_rate)
+            self.update_parameters(grad_weights, grad_biases, learning_rate)
         
         #print(self.W1)
         #print(len(weights))
