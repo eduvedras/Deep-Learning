@@ -1,4 +1,3 @@
-#%%
 #!/usr/bin/env python
 
 # Deep Learning Homework 1
@@ -41,8 +40,6 @@ class LinearModel(object):
         y (n_examples): gold labels
         """
         y_hat = self.predict(X)
-        print(y.shape)
-        print(y_hat.shape)
         n_correct = (y == y_hat).sum()
         n_possible = y.shape[0]
         return n_correct / n_possible
@@ -56,13 +53,10 @@ class Perceptron(LinearModel):
         other arguments are ignored
         """
         # Q1.1a
-        #print(self.W.shape)
         y_hat = (self.W.dot(x_i)).argmax(axis=0)
         if y_hat != y_i:
-            #self.W += kwargs['learning_rate'] * y_i * x_i
             self.W[y_i, :] += kwargs['learning_rate'] * x_i
             self.W[y_hat, :] -= kwargs['learning_rate'] * x_i
-            #print(y_i*x_i)
 
 
 class LogisticRegression(LinearModel):
@@ -105,8 +99,8 @@ class MLP(object):
         
         predicted_labels = []
         for x in X:
-            output, _, _ = self.forward(x, [self.W1,self.W2], [self.b1,self.b2])
-            y_hat = self.predict_label(output)
+            output, _ = self.forward(x, [self.W1,self.W2], [self.b1,self.b2])
+            y_hat = np.argmax(output)
             predicted_labels.append(y_hat)
         predicted_labels = np.array(predicted_labels)
         return predicted_labels
@@ -124,22 +118,18 @@ class MLP(object):
         return n_correct / n_possible
     
     def forward(self,x, weights, biases):
-        #z2 -= np.max(z2)
         num_layers = len(weights)
-        #g = np.tanh
         hiddens = []
-        hiddensReLU = []
         for i in range(num_layers):
             h = x if i == 0 else hiddens[i-1]
             z = weights[i].dot(h) + biases[i]
             if i < num_layers-1:  # Assume the output layer has no activation.
                 hiddens.append(np.maximum(0,z))
-                hiddensReLU.append(z)
         z -= np.max(z)
         output = z
         # For classification this is a vector of logits (label scores).
         # For regression this is a vector of predictions.
-        return output, hiddens, hiddensReLU
+        return output, hiddens
     
     def compute_label_probabilities(self,output):
         # softmax transformation.
@@ -152,10 +142,8 @@ class MLP(object):
         loss = -y.dot(np.log(probs))
         return loss
     
-    def backward(self, x, y, output, hiddens, hiddensReLU, weights):
+    def backward(self, x, y, output, hiddens, weights):
         num_layers = len(weights)
-        #g = np.tanh
-        z = output
         # softmax transformation.
         probs = self.compute_label_probabilities(output)
         y_onehot = np.zeros_like(output)
@@ -166,8 +154,6 @@ class MLP(object):
         for i in range(num_layers-1, -1, -1):
             # Gradient of hidden parameters.
             h = x if i == 0 else hiddens[i-1]
-            #print(grad_z.shape)
-            #print(h.shape)
             grad_weights.append(grad_z[:, None].dot(h[:, None].T))
             grad_biases.append(grad_z)
 
@@ -175,14 +161,8 @@ class MLP(object):
             grad_h = weights[i].T.dot(grad_z)
 
             # Gradient of hidden layer below before activation.
-            #assert(g == np.tanh)
-            #grad_z = grad_h * (1-h**2)   # Grad of loss wrt z3.
-            #print("111")
             if(i == 1):
-                z1 = np.where(hiddensReLU[0] > 0, 1, 0)
-                #hiddensReLU[0] = np.where(hiddensReLU[0] < 0, 0, hiddensReLU[0])
-                #print(h)
-                
+                z1 = np.where(hiddens[0] > 0, 1, 0)
                 grad_z = grad_h*z1
             
 
@@ -191,48 +171,16 @@ class MLP(object):
         return grad_weights, grad_biases
     
     def update_parameters(self, grad_weights, grad_biases, eta):
-        #aux = self.W1
         self.W1 = self.W1 - eta*grad_weights[0]
         self.W2 = self.W2 - eta*grad_weights[1]
         self.b1 = self.b1 - eta*grad_biases[0]
         self.b2 = self.b2 - eta*grad_biases[1]
-        #np.set_printoptions(threshold=np.inf)
-        #print(self.W1 == aux)
-    
-    def predict_label(self,output):
-        # The most probable label is also the label with the largest logit.
-        y_hat = np.zeros_like(output)
-        y_hat[np.argmax(output)] = 1
-        return np.argmax(output)
 
     def train_epoch(self, X, y, learning_rate=0.001):
         for x, y1 in zip(X, y):
-            output, hiddens, hiddensReLU = self.forward(x, [self.W1, self.W2], [self.b1, self.b2])
-
-
-        #loss = self.compute_loss(output, y)
-
-        #print(output)
-        #print(y_hat)
-        #print(loss)
-
-            grad_weights, grad_biases = self.backward(x, y1, output, hiddens, hiddensReLU, [self.W1, self.W2])
-        
-        #np.set_printoptions(threshold=np.inf)
-        #print(grad_weights)
-
+            output, hiddens = self.forward(x, [self.W1, self.W2], [self.b1, self.b2])
+            grad_weights, grad_biases = self.backward(x, y1, output, hiddens, [self.W1, self.W2])
             self.update_parameters(grad_weights, grad_biases, learning_rate)
-        
-        #print(self.W1)
-        #print(len(weights))
-
-        #np.set_printoptions(threshold=np.inf)
-        #print(self.W1 == test)
-        #print(self.W2)
-        #print(self.b1)
-        #print(self.b2)
-
-        #print(grad_weights, grad_biases)
 
 
 def plot(epochs, valid_accs, test_accs):
@@ -305,5 +253,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-# %%
