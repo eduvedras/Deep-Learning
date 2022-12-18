@@ -76,18 +76,17 @@ class FeedforwardNetwork(nn.Module):
         self.dropout = nn.Dropout(dropout)
         self.layers = layers
         
-        if(layers == 1):
-            self.fc1 = nn.Linear(n_features,hidden_size)
-            self.fc2 = nn.Linear(hidden_size,n_classes)
-        if(layers == 2):
-            self.fc1 = nn.Linear(n_features,hidden_size)
-            self.fc2 = nn.Linear(hidden_size,hidden_size)
-            self.fc3 = nn.Linear(hidden_size,n_classes)
-        if(layers == 3):
-            self.fc1 = nn.Linear(n_features,hidden_size)
-            self.fc2 = nn.Linear(hidden_size,hidden_size)
-            self.fc3 = nn.Linear(hidden_size,hidden_size)
-            self.fc4 = nn.Linear(hidden_size,n_classes)
+        self.fc = nn.ModuleList()
+        i = 1
+        while i <= self.layers:
+            if i == 1:
+                self.fc.append(nn.Linear(n_features,hidden_size))
+            if i > 1:
+                self.fc.append(nn.Linear(hidden_size,hidden_size))
+            if i == layers:
+                self.fc.append(nn.Linear(hidden_size,n_classes)) 
+            i += 1
+            
 
     def forward(self, x, **kwargs):
         """
@@ -97,27 +96,15 @@ class FeedforwardNetwork(nn.Module):
         the output logits from x. This will include using various hidden
         layers, pointwise nonlinear functions, and dropout.
         """
-        
-        if(self.layers == 1):
-            out = self.fc1(x)
-            out = self.active(out)
-            out = self.fc2(out)
-        
-        if(self.layers == 2):
-            out = self.fc1(x)
-            out = self.active(out)
-            out = self.fc2(out)
-            out = self.active(out)
-            out = self.fc3(out)
-            
-        if(self.layers == 3):
-            out = self.fc1(x)
-            out = self.active(out)
-            out = self.fc2(out)
-            out = self.active(out)
-            out = self.fc3(out)
-            out = self.active(out)
-            out = self.fc4(out)
+        i = 0
+        while i < self.layers + 1:
+            if i == 0:
+                out = self.fc[i](x)
+            if i > 0:
+                out = self.fc[i](out)
+            if i < self.layers:
+                out = self.active(out)
+            i += 1
         
         out = self.dropout(out)
 
