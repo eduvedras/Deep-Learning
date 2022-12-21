@@ -104,11 +104,8 @@ class FeedforwardNetwork(nn.Module):
                 out = self.fc[i](out)
             if i < self.layers:
                 out = self.active(out)
-                if i != 0:
-                    out = self.dropout(out)
+                out = self.dropout(out)
             i += 1
-        
-        #out = self.dropout(out)
 
         return out
         
