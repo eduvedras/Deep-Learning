@@ -248,7 +248,7 @@ def main():
 
     # plot
     plot(epochs, valid_accs, test_accs)
-    savefig(f'images/{opt.model}.png')
+    savefig(f'./{opt.model}.png')
 
 
 if __name__ == '__main__':
