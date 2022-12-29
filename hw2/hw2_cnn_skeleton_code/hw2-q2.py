@@ -15,6 +15,8 @@ import numpy as np
 
 import utils
 
+#device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+
 class CNN(nn.Module):
     
     def __init__(self, dropout_prob):
@@ -26,7 +28,13 @@ class CNN(nn.Module):
         https://pytorch.org/docs/stable/nn.html
         """
         super(CNN, self).__init__()
-        
+        self.conv1 = nn.Conv2d(1,8,kernel_size=5,stride=1)
+        self.conv2 = nn.Conv2d(8,16,kernel_size=3,stride=1,padding=0)
+        self.fc1 = nn.Linear(400,600)
+        self.fc1_dropout = nn.Dropout2d(0.3)
+        self.fc2 = nn.Linear(600,120)
+        self.fc2_dropout = nn.Dropout2d(dropout_prob)
+        self.fc3 = nn.Linear(120,10)
         # Implement me!
         
     def forward(self, x):
@@ -45,7 +53,14 @@ class CNN(nn.Module):
         forward pass -- this is enough for it to figure out how to do the
         backward pass.
         """
-        raise NotImplementedError
+        '''x = F.max_pool2d(F.relu(self.conv1(x)),2,stride=2)
+        x = F.max_pool2d(F.relu(self.conv2(x)),2,stride=2)
+        x = x.view(-1,400)
+        x = self.fc1_dropout(F.relu(self.fc1(x)))
+        x = self.fc2_dropout(F.relu(self.fc2(x)))
+        x = self.fc3
+        x = F.log_softmax(x,dim=1)'''
+        return x
 
 def train_batch(X, y, model, optimizer, criterion, **kwargs):
     """
@@ -65,7 +80,16 @@ def train_batch(X, y, model, optimizer, criterion, **kwargs):
     This function should return the loss (tip: call loss.item()) to get the
     loss as a numerical value that is not part of the computation graph.
     """
-    raise NotImplementedError
+    inputs = X
+    targets = y
+    
+    optimizer.zero_grad()
+    outputs = model(inputs)
+    loss = criterion(outputs,targets)
+    loss.backward()
+    optimizer.step()
+
+    return loss.item()
 
 def predict(model, X):
     """X (n_examples x n_features)"""
@@ -135,7 +159,7 @@ def main():
     parser.add_argument('-l2_decay', type=float, default=0)
     parser.add_argument('-dropout', type=float, default=0.8)
     parser.add_argument('-optimizer',
-                        choices=['sgd', 'adam'], default='sgd')
+                        choices=['sgd', 'adam'], default='adam')
     
     opt = parser.parse_args()
 
