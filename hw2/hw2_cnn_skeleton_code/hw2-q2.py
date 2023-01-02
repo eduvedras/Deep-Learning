@@ -9,7 +9,7 @@ from torch.utils.data import DataLoader
 import torch.nn as nn
 from torch import optim
 import torch.nn.functional as F
-import torchvision
+#import torchvision
 from matplotlib import pyplot as plt
 import numpy as np
 
@@ -28,12 +28,12 @@ class CNN(nn.Module):
         https://pytorch.org/docs/stable/nn.html
         """
         super(CNN, self).__init__()
-        self.conv1 = nn.Conv2d(1,8,kernel_size=5,stride=1)
+        self.conv1 = nn.Conv2d(1,8,kernel_size=5,stride=1,padding=2)
         self.conv2 = nn.Conv2d(8,16,kernel_size=3,stride=1,padding=0)
-        self.fc1 = nn.Linear(400,600)
-        self.fc1_dropout = nn.Dropout2d(0.3)
+        self.fc1 = nn.Linear(576,600)
+        self.fc1_dropout = nn.Dropout(0.3)
         self.fc2 = nn.Linear(600,120)
-        self.fc2_dropout = nn.Dropout2d(dropout_prob)
+        #self.fc2_dropout = nn.Dropout(dropout_prob)
         self.fc3 = nn.Linear(120,10)
         # Implement me!
         
@@ -53,13 +53,14 @@ class CNN(nn.Module):
         forward pass -- this is enough for it to figure out how to do the
         backward pass.
         """
-        '''x = F.max_pool2d(F.relu(self.conv1(x)),2,stride=2)
+        x = F.max_pool2d(F.relu(self.conv1(x)),2,stride=2)
         x = F.max_pool2d(F.relu(self.conv2(x)),2,stride=2)
-        x = x.view(-1,400)
+        x = x.view(-1,576)
         x = self.fc1_dropout(F.relu(self.fc1(x)))
-        x = self.fc2_dropout(F.relu(self.fc2(x)))
-        x = self.fc3
-        x = F.log_softmax(x,dim=1)'''
+        x = F.relu(self.fc2(x))
+        #x = self.fc2_dropout(F.relu(self.fc2(x)))
+        x = self.fc3(x)
+        x = F.log_softmax(x,dim=1)
         return x
 
 def train_batch(X, y, model, optimizer, criterion, **kwargs):
@@ -82,7 +83,7 @@ def train_batch(X, y, model, optimizer, criterion, **kwargs):
     """
     inputs = X
     targets = y
-    
+    inputs = inputs.view(8,1,28,28)
     optimizer.zero_grad()
     outputs = model(inputs)
     loss = criterion(outputs,targets)
@@ -93,6 +94,7 @@ def train_batch(X, y, model, optimizer, criterion, **kwargs):
 
 def predict(model, X):
     """X (n_examples x n_features)"""
+    X = X.view(10000,1,28,28)
     scores = model(X)  # (n_examples x n_classes)
     predicted_labels = scores.argmax(dim=-1)  # (n_examples)
     return predicted_labels
@@ -131,7 +133,7 @@ def plot_feature_maps(model, train_dataset):
     
     data, _ = train_dataset[4]
     data.unsqueeze_(0)
-    output = model(data)
+    output = model(data.view(1,1,28,28))
 
     plt.imshow(data.reshape(28,-1)) 
     plt.savefig('original_image.pdf')
