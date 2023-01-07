@@ -31,7 +31,7 @@ class CNN(nn.Module):
         self.conv1 = nn.Conv2d(1,8,kernel_size=5,stride=1,padding=2)
         self.conv2 = nn.Conv2d(8,16,kernel_size=3,stride=1,padding=0)
         self.fc1 = nn.Linear(576,600)
-        self.fc1_dropout = nn.Dropout(0.3)
+        self.fc1_dropout = nn.Dropout(dropout_prob)
         self.fc2 = nn.Linear(600,120)
         #self.fc2_dropout = nn.Dropout(dropout_prob)
         self.fc3 = nn.Linear(120,10)
@@ -159,7 +159,7 @@ def main():
     parser.add_argument('-learning_rate', type=float, default=0.01,
                         help="""Learning rate for parameter updates""")
     parser.add_argument('-l2_decay', type=float, default=0)
-    parser.add_argument('-dropout', type=float, default=0.8)
+    parser.add_argument('-dropout', type=float, default=0.3)
     parser.add_argument('-optimizer',
                         choices=['sgd', 'adam'], default='adam')
     

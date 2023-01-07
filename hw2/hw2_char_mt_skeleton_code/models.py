@@ -109,7 +109,16 @@ class Encoder(nn.Module):
         # - Use torch.nn.utils.rnn.pad_packed_sequence to unpack the packed sequences
         #   (after passing them to the LSTM)
         #############################################
-        raise NotImplementedError
+        embedded = self.dropout(self.embedding(src))
+        
+        packed_embedded = nn.utils.rnn.pack_padded_sequence(embedded, lengths.to('cpu'), batch_first=True, enforce_sorted=False)
+                
+        packed_outputs, (hidden,cells) = self.lstm(packed_embedded)
+
+        final_hidden = (hidden,cells)    
+        enc_output, _ = nn.utils.rnn.pad_packed_sequence(packed_outputs, batch_first=True) 
+        return enc_output, final_hidden
+        #raise NotImplementedError
         #############################################
         # END OF YOUR CODE
         #############################################
@@ -180,7 +189,18 @@ class Decoder(nn.Module):
         #         src_lengths,
         #     )
         #############################################
-        raise NotImplementedError
+        #print(self)
+        #print(tgt.shape)
+        print(dec_state[1].shape)
+        embedded = self.dropout(self.embedding(tgt))
+        print(embedded.shape)
+        outputs, (hidden,cell) = self.lstm(embedded, dec_state)
+        dec_state = (hidden,cell)
+        
+        outputs = outputs.contiguous().view(-1, self.lstm.hidden_size)
+        
+
+        #raise NotImplementedError
         #############################################
         # END OF YOUR CODE
         #############################################
@@ -188,7 +208,7 @@ class Decoder(nn.Module):
         # dec_state: tuple with 2 tensors
         # each tensor is (num_layers, batch_size, hidden_size)
         # TODO: Uncomment the following line when you implement the forward pass
-        # return outputs, dec_state
+        return outputs, dec_state
 
 
 class Seq2Seq(nn.Module):
