@@ -47,6 +47,24 @@ class Attention(nn.Module):
         # - Use torch.tanh to do the tanh
         # - Use torch.masked_fill to do the masking of the padding tokens
         #############################################
+        #batch_size, seq_len, hidden_dim = encoder_outputs.size()
+        query = self.linear_in(query)#.unsqueeze(2)  # (batch_size, hidden_dim, 1)
+        
+        query = query.transpose(1,2)
+        scores = encoder_outputs.bmm(query) # (batch_size, seq_len)
+        print(scores.shape)
+        #mask = torch.arange(seq_len, device=src_lengths.device)[None, :] < src_lengths[:, None]
+        src_seq_mask = src_seq_mask.unsqueeze(-1)
+        scores.masked_fill_(src_seq_mask, float("-inf"))
+        scores = torch.softmax(scores, dim=-1)  # (batch_size, seq_len)
+        #scores = scores.transpose(1,2)
+        #context = scores.bmm(encoder_outputs).squeeze(1)  # (batch_size, hidden_dim)
+        context = torch.sum(scores*encoder_outputs)
+        #print(query.shape,context.shape)
+        query = query.transpose(1,2)
+        attn_out = torch.tanh(self.linear_out(torch.cat((query.squeeze(2), context), dim=-1)))  # (batch_size, hidden_dim)
+        #print(attn_out.shape)
+        return attn_out
         raise NotImplementedError
         #############################################
         # END OF YOUR CODE
@@ -116,7 +134,9 @@ class Encoder(nn.Module):
         packed_outputs, (hidden,cells) = self.lstm(packed_embedded)
 
         final_hidden = (hidden,cells)    
-        enc_output, _ = nn.utils.rnn.pad_packed_sequence(packed_outputs, batch_first=True) 
+        enc_output, _ = nn.utils.rnn.pad_packed_sequence(packed_outputs, batch_first=True)
+        enc_output = self.dropout(enc_output)
+        
         return enc_output, final_hidden
         #raise NotImplementedError
         #############################################
@@ -127,7 +147,7 @@ class Encoder(nn.Module):
         # each tensor is (num_layers * num_directions, batch_size, hidden_size)
         # TODO: Uncomment the following line when you implement the forward pass
         # return enc_output, final_hidden
-
+        
 
 class Decoder(nn.Module):
     def __init__(
@@ -189,18 +209,20 @@ class Decoder(nn.Module):
         #         src_lengths,
         #     )
         #############################################
-        #print(self)
-        #print(tgt.shape)
-        print(dec_state[1].shape)
+        
         embedded = self.dropout(self.embedding(tgt))
-        print(embedded.shape)
+        
         outputs, (hidden,cell) = self.lstm(embedded, dec_state)
         dec_state = (hidden,cell)
         
-        outputs = outputs.contiguous().view(-1, self.lstm.hidden_size)
+        outputs = self.dropout(outputs)
         
-
-        #raise NotImplementedError
+        if self.attn is not None:
+             outputs = self.attn(
+                 outputs,
+                 encoder_outputs,
+                 src_lengths,
+             )
         #############################################
         # END OF YOUR CODE
         #############################################

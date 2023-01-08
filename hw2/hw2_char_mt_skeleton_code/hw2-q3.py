@@ -66,9 +66,9 @@ def train(data, model, lr, n_epochs, padding_idx):
 
             optimizer.zero_grad()
             outputs, _ = model(src, src_lengths, tgt)
-            print(len(src_lengths))
+            #print(outputs[:, :-1].shape, tgt[:, 1:].shape)
             loss = criterion(
-                outputs.reshape(-1, outputs.shape[-1]), tgt[:, 1:].reshape(-1)
+                outputs[:, :-1].reshape(-1, outputs.shape[-1]), tgt[:, 1:].reshape(-1)
             )
             loss.backward()
             optimizer.step()
