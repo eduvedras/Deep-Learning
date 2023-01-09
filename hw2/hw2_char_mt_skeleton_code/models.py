@@ -47,17 +47,18 @@ class Attention(nn.Module):
         # - Use torch.tanh to do the tanh
         # - Use torch.masked_fill to do the masking of the padding tokens
         #############################################
-        query = self.linear_in(query)
+        query_z = self.linear_in(query)
         
-        scores = torch.bmm(query, encoder_outputs.transpose(1,2)) 
+        scores = torch.bmm(query_z, encoder_outputs.transpose(1,2)) 
         
-        src_seq_mask = src_seq_mask.unsqueeze(-1)
+        src_seq_mask = src_seq_mask.unsqueeze(2)
         
         scores.transpose(1,2).masked_fill_(src_seq_mask, float("-inf"))
         scores = torch.softmax(scores, dim=2) 
         
         context = torch.bmm(scores,encoder_outputs)
         attn_out = torch.tanh(self.linear_out(torch.cat((query, context), dim=2)))
+        
         return attn_out
         #############################################
         # END OF YOUR CODE
