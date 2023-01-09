@@ -124,9 +124,8 @@ class Encoder(nn.Module):
         
         packed_embedded = nn.utils.rnn.pack_padded_sequence(embedded, lengths.to('cpu'), batch_first=True, enforce_sorted=False)
                 
-        packed_outputs, (hidden,cells) = self.lstm(packed_embedded)
-
-        final_hidden = (hidden,cells)    
+        packed_outputs, final_hidden = self.lstm(packed_embedded)
+ 
         enc_output, _ = nn.utils.rnn.pad_packed_sequence(packed_outputs, batch_first=True)
         enc_output = self.dropout(enc_output)
         
@@ -205,8 +204,7 @@ class Decoder(nn.Module):
         
         embedded = self.dropout(self.embedding(tgt))
         
-        outputs, (hidden,cell) = self.lstm(embedded, dec_state)
-        dec_state = (hidden,cell)
+        outputs, dec_state = self.lstm(embedded, dec_state)
         
         outputs = self.dropout(outputs)
         
