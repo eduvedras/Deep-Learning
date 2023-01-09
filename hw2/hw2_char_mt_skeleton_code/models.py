@@ -47,25 +47,18 @@ class Attention(nn.Module):
         # - Use torch.tanh to do the tanh
         # - Use torch.masked_fill to do the masking of the padding tokens
         #############################################
-        #batch_size, seq_len, hidden_dim = encoder_outputs.size()
-        query = self.linear_in(query)#.unsqueeze(2)  # (batch_size, hidden_dim, 1)
+        query = self.linear_in(query)
         
-        query = query.transpose(1,2)
-        scores = encoder_outputs.bmm(query) # (batch_size, seq_len)
-        print(scores.shape)
-        #mask = torch.arange(seq_len, device=src_lengths.device)[None, :] < src_lengths[:, None]
+        scores = torch.bmm(query, encoder_outputs.transpose(1,2)) 
+        
         src_seq_mask = src_seq_mask.unsqueeze(-1)
-        scores.masked_fill_(src_seq_mask, float("-inf"))
-        scores = torch.softmax(scores, dim=-1)  # (batch_size, seq_len)
-        #scores = scores.transpose(1,2)
-        #context = scores.bmm(encoder_outputs).squeeze(1)  # (batch_size, hidden_dim)
-        context = torch.sum(scores*encoder_outputs)
-        #print(query.shape,context.shape)
-        query = query.transpose(1,2)
-        attn_out = torch.tanh(self.linear_out(torch.cat((query.squeeze(2), context), dim=-1)))  # (batch_size, hidden_dim)
-        #print(attn_out.shape)
+        
+        scores.transpose(1,2).masked_fill_(src_seq_mask, float("-inf"))
+        scores = torch.softmax(scores, dim=2) 
+        
+        context = torch.bmm(scores,encoder_outputs)
+        attn_out = torch.tanh(self.linear_out(torch.cat((query, context), dim=2)))
         return attn_out
-        raise NotImplementedError
         #############################################
         # END OF YOUR CODE
         #############################################
