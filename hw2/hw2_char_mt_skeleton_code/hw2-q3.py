@@ -68,7 +68,7 @@ def train(data, model, lr, n_epochs, padding_idx):
             outputs, _ = model(src, src_lengths, tgt)
     
             loss = criterion(
-                outputs[:, :-1].reshape(-1, outputs.shape[-1]), tgt[:, 1:].reshape(-1)
+                outputs.reshape(-1, outputs.shape[-1]), tgt[:, 1:].reshape(-1)
             )
             loss.backward()
             optimizer.step()
